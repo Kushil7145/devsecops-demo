@@ -17,6 +17,18 @@ jobs:
     steps:
         - name: Checkout code
           uses: actions/checkout@v6
+          
+        # -------------------------
+        # SECRETS SCANNING
+        # -------------------------
+        - name: Secrets Scan (TruffleHog)
+          uses: trufflesecurity/trufflehog@v3.92.5
+          with:
+            path: ./
+            base: HEAD~1
+            head: HEAD
+            fail: true
+        
         # -------------------------
         # BUILD
         # -------------------------
