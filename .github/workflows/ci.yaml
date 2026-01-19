@@ -26,7 +26,7 @@ jobs:
           run: |
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
             curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
-            trufflehog filesystem . --fail
+            ./bin/trufflehog filesystem . --fail
         
         # -------------------------
         # BUILD
