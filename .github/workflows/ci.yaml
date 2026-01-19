@@ -16,20 +16,17 @@ jobs:
       image: node:22-bullseye
     steps:
         - name: Checkout code
-          uses: actions/checkout@v6
-          
-        - name: Mark repo as safe for Git
-          run: |
-            git config --global --add safe.directory "$GITHUB_WORKSPACE"  
+          uses: actions/checkout@v6 
             
         # -------------------------
         # SECRETS SCANNING
         # -------------------------
         
         - name: Secrets Scan (TruffleHog)
-          uses: trufflesecurity/trufflehog@v3.92.5
-          with:
-            path: ./
+          run: |
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
+            curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
+            trufflehog filesystem . --fail
         
         # -------------------------
         # BUILD
