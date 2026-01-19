@@ -29,6 +29,7 @@ jobs:
         # -------------------------
         # SAST - SonarQube
         # -------------------------
+
         - name: Analyze with SonarQube
           uses: SonarSource/sonarqube-scan-action@v7.0.0
           env:
@@ -39,16 +40,30 @@ jobs:
            args:
             -Dsonar.projectKey=devsecops-demo
             -Dsonar.sources=.
-   
+           
         # -------------------------
-        # SCA - Snyk
+        # SCA - Trivy
         # -------------------------
             
-        - name: Run Snyk to check for vulnerabilities
-          uses: snyk/actions/node@master
-          continue-on-error: true
-          env:
-            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        - name: Trivy filesystem scan (SCA)
+          uses: aquasecurity/trivy-action@0.20.0
           with:
-            command: monitor
-            args: --all-projects 
+            scan-type: fs
+            scan-ref: .
+            severity: HIGH,CRITICAL
+            exit-code: 1
+            ignore-unfixed: true
+            format: cyclonedx
+            output: sbom.json
+        
+        - name: Upload SBOM
+          uses: actions/upload-artifact@v4
+          with:
+            name: SCA-SBOM
+            path: sbom.json
+        
+        - name: Upload build artifacts
+          uses: actions/upload-artifact@v4
+          with:
+            name: build-artifacts
+            path: dist/
