@@ -18,6 +18,10 @@ jobs:
         - name: Checkout code
           uses: actions/checkout@v6
           
+        - name: Mark repo as safe for Git
+          run: |
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"  
+            
         # -------------------------
         # SECRETS SCANNING
         # -------------------------
@@ -26,8 +30,6 @@ jobs:
           uses: trufflesecurity/trufflehog@v3.92.5
           with:
             path: ./
-            base: HEAD~1
-            head: HEAD
         
         # -------------------------
         # BUILD
