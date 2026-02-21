@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   devsecops-Build-CI:
-    name: Build & Security Scans
+    name: Build & Scan
     runs-on: self-hosted
     container:
       image: node:22-bullseye
@@ -32,18 +32,20 @@ jobs:
         # SECRETS SCANNING - TRUFFLEHOG
         # -------------------------
 
-        - name: Fix Git Safe Directory
+        - name: Secrets Scan (TruffleHog)
           run: |
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
+            curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
+            ./bin/trufflehog filesystem . --fail --format sarif --no-update
 
-        - name: TruffleHog Secret Scan (Current Branch)
-          uses: trufflesecurity/trufflehog@main
-          with:
-            extra_args: >
-              filesystem .
-              --format sarif
-              --no-update
-              --fail
+        # - name: TruffleHog Secret Scan (Current Branch)
+        #   uses: trufflesecurity/trufflehog@main
+        #   with:
+        #     extra_args: >
+        #       filesystem .
+        #       --format sarif
+        #       --no-update
+        #       --fail
 
         - name: Upload TruffleHog results
           uses: github/codeql-action/upload-sarif@v3
@@ -87,7 +89,7 @@ jobs:
             path: dist/
         
   devsecops-Docker-CI:
-    name: Docker & Security Scans
+    name: Docker & Scan
     runs-on: self-hosted
     needs: [devsecops-Build-CI]
     container:
