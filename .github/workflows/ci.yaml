@@ -70,8 +70,6 @@ jobs:
     name: Docker Build and Push
     runs-on: self-hosted
     needs: [devsecops-Build-CI]
-    container:
-      image: node:22-bullseye
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}
