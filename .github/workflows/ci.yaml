@@ -13,8 +13,6 @@ jobs:
   devsecops-Build-CI:
     name: Build & Scan
     runs-on: self-hosted
-    container:
-      image: node:22-bullseye
     steps:
         - name: Checkout code
           uses: actions/checkout@v6
@@ -32,20 +30,20 @@ jobs:
         # SECRETS SCANNING - TRUFFLEHOG
         # -------------------------
 
-        - name: Secrets Scan (TruffleHog)
-          run: |
-            git config --global --add safe.directory "$GITHUB_WORKSPACE"
-            curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
-            ./bin/trufflehog filesystem . --fail --format sarif --no-update
+        # - name: Secrets Scan (TruffleHog)
+        #   run: |
+        #     git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        #     curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
+        #     ./bin/trufflehog filesystem . --fail --format sarif --no-update
 
-        # - name: TruffleHog Secret Scan (Current Branch)
-        #   uses: trufflesecurity/trufflehog@main
-        #   with:
-        #     extra_args: >
-        #       filesystem .
-        #       --format sarif
-        #       --no-update
-        #       --fail
+        - name: TruffleHog Secret Scan (Current Branch)
+          uses: trufflesecurity/trufflehog@main
+          with:
+            extra_args: >
+              filesystem .
+              --format sarif
+              --no-update
+              --fail
 
         - name: Upload TruffleHog results
           uses: github/codeql-action/upload-sarif@v3
@@ -92,8 +90,7 @@ jobs:
     name: Docker & Scan
     runs-on: self-hosted
     needs: [devsecops-Build-CI]
-    container:
-      image: node:22-bullseye
+
     steps:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
