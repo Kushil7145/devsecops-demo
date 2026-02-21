@@ -5,11 +5,12 @@ on:
      branches: [main, feature/*]
     pull_request:
 permissions:
-  pull-requests: read # allows SonarQube to decorate PRs with analysis results
-
+  pull-requests: write # allows SonarQube to decorate PRs with analysis results
+  contents: read
+  security-events: write
 
 jobs:
-  devsecops-CI:
+  devsecops-Build-CI:
     name: Build & Security Scans
     runs-on: self-hosted
     container:
@@ -17,16 +18,32 @@ jobs:
     steps:
         - name: Checkout code
           uses: actions/checkout@v6
+
         # -------------------------
         # SECRETS SCANNING
         # -------------------------
         
-        - name: Secrets Scan (TruffleHog)
-          run: |
-            git config --global --add safe.directory "$GITHUB_WORKSPACE"
-            curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
-            ./bin/trufflehog filesystem . --fail
+        # - name: Secrets Scan (TruffleHog)
+        #   run: |
+        #     git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        #     curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
+        #     ./bin/trufflehog filesystem . --fail
+        - name: TruffleHog OSS
+          id: trufflehog
+          uses: trufflesecurity/trufflehog@main
+          continue-on-error: true
+          with:
+            path: ./
+            base: "${{ github.event.repository.default_branch }}"
+            head: HEAD
+            extra_args: --debug --format sarif --no-update --fail
         
+        - name: Upload TruffleHog results
+          uses: github/codeql-action/upload-sarif@v3
+          with:
+            sarif_file: trufflehog.sarif
+            category: trufflehog-results
+                
         # -------------------------
         # SAST - SonarQube
         # -------------------------
@@ -41,23 +58,41 @@ jobs:
            args:
             -Dsonar.projectKey=devsecops-demo
             -Dsonar.sources=.
-   
+        
         # -------------------------
-        # SCA - Snyk
+        # Build
         # -------------------------
-        - name: Debug Snyk token presence
-          run: |
-            if [ -z "$SNYK_TOKEN" ]; then
-              echo "SNYK_TOKEN is NOT set"
-              exit 1
-            else
-              echo "SNYK_TOKEN is set"
-            fi
-          env:
-            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-            
-        - name: Run Snyk to check for vulnerabilities
-          uses: snyk/actions/node@master
-          continue-on-error: true
-          env:
-            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '20'
+            cache: 'npm'
+      
+        - name: Install dependencies
+          run: npm ci
+      
+        - name: Build project
+          run: npm run build
+      
+        - name: Upload build artifacts
+          uses: actions/upload-artifact@v4
+          with:
+            name: build-artifacts
+            path: dist/
+        
+  devsecops-Docker-CI:
+    name: Build & Security Scans
+    runs-on: self-hosted
+    needs: [devsecops-Build-CI]
+    container:
+      image: node:22-bullseye
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+
+        
+      
