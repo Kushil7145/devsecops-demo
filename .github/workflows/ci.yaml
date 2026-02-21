@@ -40,7 +40,6 @@ jobs:
           uses: trufflesecurity/trufflehog@main
           with:
             extra_args: >
-              filesystem .
               --format sarif
               --no-update
               --fail
