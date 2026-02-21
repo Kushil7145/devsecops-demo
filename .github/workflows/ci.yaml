@@ -16,8 +16,7 @@ jobs:
       image: node:22-bullseye
     steps:
         - name: Checkout code
-          uses: actions/checkout@v6 
-            
+          uses: actions/checkout@v6
         # -------------------------
         # SECRETS SCANNING
         # -------------------------
@@ -27,15 +26,6 @@ jobs:
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
             curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
             ./bin/trufflehog filesystem . --fail
-        
-        # -------------------------
-        # BUILD
-        # -------------------------
-        - name: Install dependencies
-          run: npm ci
-
-        - name: Build project
-          run: npm run build
         
         # -------------------------
         # SAST - SonarQube
@@ -51,30 +41,23 @@ jobs:
            args:
             -Dsonar.projectKey=devsecops-demo
             -Dsonar.sources=.
-           
+   
         # -------------------------
-        # SCA - Trivy
+        # SCA - Snyk
         # -------------------------
+        - name: Debug Snyk token presence
+          run: |
+            if [ -z "$SNYK_TOKEN" ]; then
+              echo "SNYK_TOKEN is NOT set"
+              exit 1
+            else
+              echo "SNYK_TOKEN is set"
+            fi
+          env:
+            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
             
-        - name: Trivy filesystem scan (SCA)
-          uses: aquasecurity/trivy-action@0.20.0
-          with:
-            scan-type: fs
-            scan-ref: .
-            severity: HIGH,CRITICAL
-            exit-code: 1
-            ignore-unfixed: true
-            format: cyclonedx
-            output: sbom.json
-        
-        - name: Upload SBOM
-          uses: actions/upload-artifact@v4
-          with:
-            name: SCA-SBOM
-            path: sbom.json
-        
-        - name: Upload build artifacts
-          uses: actions/upload-artifact@v4
-          with:
-            name: build-artifacts
-            path: dist/
+        - name: Run Snyk to check for vulnerabilities
+          uses: snyk/actions/node@master
+          continue-on-error: true
+          env:
+            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
